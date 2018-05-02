@@ -19,9 +19,13 @@ def mandelbrot_set(xmin, xmax, ymin, ymax, xn, yn, maxiter, horizon=2.0):
     Y = np.linspace(ymin, ymax, yn, dtype=np.float32)
     C = X + Y[:, None]*1j
     N = np.zeros(C.shape, dtype=int)
-    Z = np.zeros(C.shape, np.complex64)
+    Z = np.zeros(C.shape, dtype=np.complex64)
+    Zabs = np.zeros(C.shape, dtype=np.float64)
+    I = np.zeros(C.shape, dtype=bool)
+
     for n in range(maxiter):
-        I = np.less(abs(Z), horizon)
+        I = np.less(np.abs(Z, Zabs), horizon)
+        #import IPython; IPython.embed()
         N[I] = n
         Z[I] = Z[I]**2 + C[I]
     N[N == maxiter-1] = 0
@@ -30,18 +34,19 @@ def mandelbrot_set(xmin, xmax, ymin, ymax, xn, yn, maxiter, horizon=2.0):
 
 if __name__ == '__main__':
     import time
-    import matplotlib
-    matplotlib.use('Agg')
-    from matplotlib import colors
-    import matplotlib.pyplot as plt
+    #import matplotlib
+    #matplotlib.use('Agg')
+    #from matplotlib import colors
+    #import matplotlib.pyplot as plt
 
     xmin, xmax, xn = -2.25, +0.75, 3000/2
     ymin, ymax, yn = -1.25, +1.25, 2500/2
-    maxiter = 200
+    maxiter = 1000
     horizon = 2.0 ** 40
     log_horizon = np.log(np.log(horizon))/np.log(2)
     Z, N = mandelbrot_set(xmin, xmax, ymin, ymax, xn, yn, maxiter, horizon)
-
+    exit(0)
+    
     # Normalized recount as explained in:
     # https://linas.org/art-gallery/escape/smooth.html
     # https://www.ibm.com/developerworks/community/blogs/jfp/entry/My_Christmas_Gift
