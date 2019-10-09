@@ -1,0 +1,250 @@
+---
+title: An R Markdown document converted from "03_Data_Access.ipynb"
+output: html_document
+---
+
+# Data access
+
+## CSV files
+
+There's multiple functions in the `readr` for CSV file reading. Let's use them on a dataset available in Kaggle that has homemade beer recipes from Brewer's Friend [[1]](https://www.kaggle.com/jtrofe/beer-recipes).
+
+Let's check the first few lines of the data with base R's `file` and `readLines`.
+
+```{r}
+example_file <- file("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv",'r')
+first_lines <- readLines(example_file,n=2)
+close(example_file)
+
+print(first_lines)
+```
+
+Before we choose which reader we want to use we need to check the format of the data. 
+
+`readr` has predefined functions for the following data formats [[1]](http://readr.tidyverse.org/reference/read_delim.html):
+- `read_delim` parses generic data delimited by a character
+- `read_csv` assumes that the data is delimited by commas
+- `read_csv2` assumes that the data is delimited by semicolons
+- `read_tsv` assumes that the data is delimited by tabs
+
+In this case we want to use `read_csv`. Do note that we limit ourselves to first 100 values for faster parsing.
+
+```{r}
+library(tidyverse)
+
+beer_recipes <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv", n_max=100)
+```
+
+From the output one can see that `read_csv` tries to parse the datatype of the column automatically.
+
+By running `spec` one can see the full definitons.
+
+```{r}
+spec(beer_recipes)
+```
+
+Many of the data columns seem to be characters instead of numbers. Let's use `col_types`-argument to specify a better definition.
+
+```{r}
+
+beer_recipes <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv",
+    col_types=cols(
+      BeerID = col_integer(),
+      Name = col_character(),
+      URL = col_character(),
+      Style = col_character(),
+      StyleID = col_integer(),
+      `Size(L)` = col_double(),
+      OG = col_double(),
+      FG = col_double(),
+      ABV = col_double(),
+      IBU = col_double(),
+      Color = col_double(),
+      BoilSize = col_double(),
+      BoilTime = col_double(),
+      BoilGravity = col_double(),
+      Efficiency = col_double(),
+      MashThickness = col_double(),
+      SugarScale = col_character(),
+      BrewMethod = col_character(),
+      PitchRate = col_double(),
+      PrimaryTemp = col_double(),
+      PrimingMethod = col_character(),
+      PrimingAmount = col_character()
+    ),
+    n_max=100
+)
+```
+
+This produced a lot of problems. Let's check the problems with `problems`.
+
+```{r}
+problems(beer_recipes)
+```
+
+Most of the problems seem to be related to _N/A_ not being a recognized name for `NA`. Let's add that to the initial read call with `na`-argument. 
+
+```{r}
+beer_recipes <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv",na=c("","NA","N/A"), n_max=100)
+
+spec(beer_recipes)
+```
+
+Now most of the columns seem correct. Last column seems to include units (_oz_). Using mutate is probably easiest way of getting rid of them.
+
+Let' use `str_remove` to remove it  [[str_remove]](https://stringr.tidyverse.org/reference/str_remove.html).
+
+After that we can convert the column to double and use `str` to check that our dataset looks fine.
+
+```{r}
+beer_recipes <- beer_recipes %>%
+    mutate(PrimingAmount=as.double(str_remove(PrimingAmount, ' oz')))
+
+str(beer_recipes)
+```
+
+Let's say that we want to write the resulting `tibble` in a format that is easily readable in Excel.
+
+For this we'd want to use `write_excel_csv` (there are similar functions for normal csv, tsv etc.) [[write_excel_csv]](http://readr.tidyverse.org/reference/write_delim.html).  
+
+```{r}
+write_excel_csv(beer_recipes, 'beer-recipes-excel-format.csv')
+```
+
+# Feather
+
+Let's say you have a big dataset you have pre-processed with R, but want to analyze with Python. The new feather-format that uses Apache Arrow's data specification is created by the creators of Tidy-R and Pandas and it should be interoprable with both of them [[feather's page in Github]](https://github.com/wesm/feather).
+
+What matters the most is that it is fast and compact (because it is a binary data format).
+
+Using it is simple, just load `feather`-library an write data with `write_feather` [[write_feather]](https://cran.r-project.org/web/packages/feather/feather.pdf).
+
+Loading data is done with `read_feather`.
+
+Do note that more complex structures like nested tibbles do not necessarily fit into a feather.
+
+Let's install `feather`:
+
+```{r}
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/feather')) {
+    install.packages('feather', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(feather, lib.loc='rlibs')
+```
+
+```{r}
+write_feather(beer_recipes,'beer_recipes.feather')
+
+beer_recipes2 <- read_feather('beer_recipes.feather')
+```
+
+# Database access
+
+There exists a package `DBI` that defines a common interface that can be used to access various different databases [[DBI]](https://dbi.r-dbi.org/).
+
+When using `DBI`, one can also use `dbplyr` to run `tidyverse` verbs (`select`, `map`, etc.) to database queries without loading the whole database into memory.
+
+```{r}
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/DBI')) {
+    install.packages('DBI', repos="http://cran.r-project.org", lib='rlibs')
+}
+if (!file.exists('rlibs/dbplyr')) {
+    install.packages('dbplyr', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(DBI, lib.loc='rlibs')
+library(dbplyr, lib.loc='rlibs')
+```
+
+Let's use `tbl_memdb` from `dbplyr` to add `beer_recipes` to a temporary in-memory database [[tbl_memdb]](https://dbplyr.tidyverse.org/reference/memdb_frame.html).
+
+```{r}
+beers_db <- tbl_memdb(beer_recipes)
+```
+
+The returned object is a SQL table that acts like a tibble.
+
+```{r}
+print(beers_db)
+beers_db %>%
+    select(Name, ABV, OG, FG)
+```
+
+The difference between using normal tibbles and this database connection is that database queries are all connected and only evaluated when data is requsted. One can see the query that would be made with `show_query` [[show_query]](https://dplyr.tidyverse.org/reference/explain.html).
+
+```{r}
+beers_db %>%
+    filter(ABV > 5) %>%
+    summarise(mean = mean(OG)) %>%
+    show_query()
+```
+
+One can collect the data to the current R session with `collect` [[collect]](https://dbplyr.tidyverse.org/reference/collapse.tbl_sql.html).
+
+```{r}
+beers_over_5abv <- beers_db %>%
+    filter(ABV > 5) %>%
+    select(Name, ABV, OG, FG) %>%
+    collect()
+str(beers_over_5abv)
+```
+
+To remove tables from the temporary memory database, one needs to get the connection to it with `src_memdb` and `db_drop_table` from `dplyr`'s SQL backend [[src_memdb]](https://dbplyr.tidyverse.org/rmeference/memdb_frame.html) [[db_drop_table]](https://dplyr.tidyverse.org/reference/backend_dbplyr.html).
+
+```{r}
+memdb <- src_memdb()
+memdb
+db_drop_table('beer_recipes', con=memdb$con)
+memdb
+```
+
+One can also write to a database file by opening a database connection with DBI.
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "beer_recipes.sqlite")
+```
+
+Let's use `copy_to`-function to copy the `beer_recipes`-dataframe into a table in this newly established SQLite [[copy_to]](https://dplyr.tidyverse.org/reference/copy_to.html).
+
+```{r}
+copy_to(con, beer_recipes, overwrite=TRUE, temporary=FALSE)
+```
+
+To get a reference to this new tab, we can use the `tbl`-function [[tbl]](https://dplyr.tidyverse.org/reference/tbl.html).
+
+```{r}
+beers_sqlite <- tbl(con,'beer_recipes')
+beers_sqlite
+```
+
+Let's close and re-open the connection to verify that the table is indeed in the database file.
+
+```{r}
+dbDisconnect(con)
+con
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "beer_recipes.sqlite")
+con
+tbl(con,'beer_recipes')
+dbDisconnect(con)
+con
+```
+
+# Exercise time:
+
+1. Modify column specifications for FIFA World Cup match data [[1]](https://www.kaggle.com/abecklas/fifa-world-cup). Use `col_datetime` in `col_types` to get a good specification for column _DateTime_ [[col_datetime]](http://readr.tidyverse.org/reference/parse_datetime.html). Use `col_factor` to make columns _Round_, _Stadium_, _City_, _HomeTeam_ and _AwayTeam_ into factors.
+2. Store the resulting tibble as a feather.
+3. Store the resulting tibble into a SQLite database.
+
+```{r}
+fifa_matches <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/fifa/WorldCupMatches.csv")
+```
+
+```{r}
+str(fifa_matches)
+```
+

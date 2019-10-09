@@ -1,0 +1,57 @@
+---
+title: An R Markdown document converted from "03_Data_Access_ex_solutions.ipynb"
+output: html_document
+---
+
+# Exercise time:
+
+1. Modify column specifications for FIFA World Cup match data [[1]](https://www.kaggle.com/abecklas/fifa-world-cup). Use `col_datetime` in `col_types` to get a good specification for column _DateTime_ [[col_datetime]](http://readr.tidyverse.org/reference/parse_datetime.html). Use `col_factor` to make columns _Round_, _Stadium_, _City_, _HomeTeam_ and _AwayTeam_ into factors.
+2. Store the resulting tibble as a feather.
+3. Store the resulting tibble into a SQLite database.
+
+# Solutions:
+
+```{r}
+library(tidyverse)
+library(feather, lib.loc='rlibs')
+library(DBI, lib.loc='rlibs')
+library(dbplyr, lib.loc='rlibs')
+```
+
+## 1.
+
+```{r}
+fifa_matches <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/fifa/WorldCupMatches.csv",
+                         col_types=cols(
+                             DateTime=col_datetime('%d%.%b%+%Y%+%R'),
+                             Round=col_factor(levels=NULL),
+                             Stadium=col_factor(levels=NULL),
+                             City=col_factor(levels=NULL),
+                             HomeTeam=col_factor(levels=NULL),
+                             AwayTeam=col_factor(levels=NULL)
+                         )
+                )
+
+str(fifa_matches)
+```
+
+## 2.
+
+```{r}
+write_feather(fifa_matches,'fifa_matches.feather')
+```
+
+## 3.
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "fifa.sqlite")
+copy_to(con, fifa_matches, overwrite=TRUE, temporary=FALSE)
+dbDisconnect(con)
+```
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "fifa.sqlite")
+tbl(con, 'fifa_matches')
+dbDisconnect(con)
+```
+
