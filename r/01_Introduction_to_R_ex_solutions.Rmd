@@ -1,0 +1,44 @@
+---
+title: An R Markdown document converted from "01_Introduction_to_R_ex_solutions.ipynb"
+output: html_document
+---
+
+# Exercise time: 
+
+1. Use `filter` and `geom_histogram` to plot a histogram of ratings for action-movies (Doc pages: [[filter]](http://dplyr.tidyverse.org/reference/filter.html) [[geom_histogram]](http://ggplot2.tidyverse.org/reference/geom_histogram.html)).
+2. Use `filter` and `arrange` to find the highest rated romance-movie with more than 1000 votes (Doc pages: [[filter]](http://dplyr.tidyverse.org/reference/filter.html) [[arrange]](https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/arrange)).
+3. Take movies with more than 1000 votes and an estimated budget (`! is.na(budget)`). Use `top_n` to limit yourself to 200 highest rated. Use `geom_point` and `scale_x_log10` to create a semi-log scatter plot of movie budget vs. movie rating ([[top_n]](http://dplyr.tidyverse.org/reference/top_n.html) [[geom_point]](http://ggplot2.tidyverse.org/reference/geom_point.html) [[scale_x_log10]](http://ggplot2.tidyverse.org/reference/scale_continuous.html)).
+
+```{r}
+library(tidyverse)
+library('ggplot2movies', lib.loc='rlibs')
+data('movies',package='ggplot2movies')
+```
+
+# Solutions:
+
+## 1.
+
+```{r}
+movies %>%
+    filter(Action == 1) %>%
+    ggplot(aes(x=rating)) +
+    geom_histogram(binwidth=0.1)
+```
+
+```{r}
+movies %>%
+    filter(Romance==1 & votes > 1000) %>%
+    arrange(desc(rating)) %>%
+    head(1)
+```
+
+```{r}
+movies %>%
+    filter(votes > 1000 & ! is.na(budget)) %>%
+    top_n(rating,n=200) %>%
+    ggplot(aes(x=budget,y=rating)) +
+    geom_point() +
+    scale_x_log10()
+```
+

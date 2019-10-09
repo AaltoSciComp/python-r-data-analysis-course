@@ -1,0 +1,61 @@
+---
+title: An R Markdown document converted from "02_Summaries_and_Groups_ex_solutions.ipynb"
+output: html_document
+---
+
+# Exercise time:
+
+Do these exercises to `mtcars`-dataset intialized below (do note the use of `rownames_to_column` that will store row names from `data.frame` into a column in `tibble` [[rownames_to_column]](https://tibble.tidyverse.org/reference/rownames.html)):
+
+1. Use `mutate` to calculate litres per 100 km (e.g. lp100km) as mpg is a bad unit to use for fuel consumption (Ref: [[1]](http://science.sciencemag.org/content/320/5883/1593.full?ijkey=3pScQm7pQBzqs&keytype=ref&siteid=sci). Conversion factor is `lp100km=235.214583/mpg`.
+2. Calculate correlation of horsepower and quarter mile time (`qsec`). Plot scatter plot and a linear fit.
+3. Group data based on cylinder numbers. Calculate correlation between weight and l/100km for each group. Plot scatter plots with different colours for each group.
+
+# Solutions:
+
+```{r}
+library(tidyverse)
+
+data(mtcars)
+
+mtcars_tbl <- as_tibble(rownames_to_column(mtcars,var='model'))
+
+str(mtcars_tbl)
+```
+
+## 1.
+
+```{r}
+mtcars_tbl <- mtcars_tbl %>%
+    mutate(lp100km=235.214583/mpg)
+
+str(mtcars_tbl)
+```
+
+## 2.
+
+```{r}
+mtcars_tbl %>%
+    summarize(hp_qsec_cor=cor(hp,qsec))
+
+mtcars_tbl %>%
+    ggplot(aes(x=hp,y=qsec)) +
+    geom_point() +
+    geom_smooth(method=lm)
+```
+
+## 3.
+
+```{r}
+mtcars_grouped_by_cyl <- mtcars_tbl %>%
+    group_by(cyl)
+
+mtcars_grouped_by_cyl %>%
+    summarize(wt_lp100km_cor=cor(wt,lp100km))
+
+mtcars_grouped_by_cyl %>%
+    ggplot(aes(x=wt,y=lp100km,color=factor(cyl))) +
+    geom_point() +
+    geom_smooth(method=lm)
+```
+

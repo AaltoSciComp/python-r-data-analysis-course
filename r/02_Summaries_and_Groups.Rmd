@@ -1,0 +1,124 @@
+---
+title: An R Markdown document converted from "02_Summaries_and_Groups.ipynb"
+output: html_document
+---
+
+# Summaries and Groups
+
+The introduction focused largely on picking the data you wanted with `filter` and `select`; and reorganizing it with `gather` or `arrange`. In this notebook the focus is on analyzing the data. It's rarely the case that one can just plot the results from the data with no analysis.
+
+## Summarize
+
+Let's analyze the famous `iris`-dataset containing data on flowers.
+
+```{r}
+library(tidyverse)
+
+data(iris)
+
+iris_tbl <- as_tibble(iris)
+
+print(iris_tbl)
+```
+
+Let's say we want to analyze statistics e.g. mean, variance and correlation of petal widths/lengths. This means that we want to summarize rows (observations) into a single row with these mean values.
+
+To do this we `summarize` (or `summarise`) rows with functions that takes columns (variables) as their input ([[summarize]](http://dplyr.tidyverse.org/reference/summarise.html)).
+
+```{r}
+iris_tbl %>%
+    summarize(
+        Petal.Length_mean=mean(Petal.Length),
+        Petal.Width_mean=mean(Petal.Width),
+        Petal.Length_var=var(Petal.Length),
+        Petal.Width_var=var(Petal.Width),
+        Petal_cor=cor(Petal.Length,Petal.Width)
+    )
+```
+
+For multiple variables/functions it is good to use `summarize_at` or `summarize_all` ([[summarize_at]](http://dplyr.tidyverse.org/reference/summarise_all.html)).
+
+Here `vars` selects variables, `contains` looks for substring from variable name and `list` creates a list of function calls ([[vars]](http://dplyr.tidyverse.org/reference/vars.html), [[list]](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/list)).
+
+These do not work for functions that take multiple columns (like `cor`). For them other functions need to be used.
+
+```{r}
+iris_tbl %>%
+    summarize_at(vars(contains('Petal')),list(mean,var))
+
+iris_tbl %>%
+    select(-Species) %>%
+    summarize_all(list(mean=mean, var=var))
+```
+
+One can also use oneliner functions with `.` used to mark the operated measurement. This can be useful with e.g. unit conversions.
+
+The following would mutate all numerical values from centimeters to inches [[mutate_if]](http://dplyr.tidyverse.org/reference/summarise_all.html).
+
+```{r}
+iris_tbl %>%
+    mutate_if(is.numeric, ~ . / 2.54) %>%
+    head()
+```
+
+We can easily visualize the correlation of petal width/height with `ggplot` and `geom_smooth` ([[geom_smooth]](http://ggplot2.tidyverse.org/reference/geom_smooth.html)).
+
+```{r}
+iris_tbl %>%
+    ggplot(aes(x=Petal.Length,y=Petal.Width)) +
+    geom_point(shape=1) +
+    geom_smooth(method=lm)
+```
+
+## Groups
+
+From the previous plot it is easy to see that the data is divided into clusters based on some unknown variable. For this reason we should try to group our analysis based on the same criterion.
+
+Let's try Species as it seems like natural category to use for grouping. Grouping can be done with `group_by` ([[group_by]](http://dplyr.tidyverse.org/reference/group_by.html)).
+
+```{r}
+iris_by_species <- iris_tbl %>%
+    group_by(Species)
+print(iris_by_species)
+```
+
+Do note that we have assigned this grouped Tibble into a new variable with `<-` as we do not want to do the grouping each time we run some analysis on the dataset.
+
+In R objects are immutable, which means that function calls do not modify arguments. Thus only way of storing modifications made by functions is to assign the modified object into a variable.
+
+Now let's run the same analysis and plotting that we did before on this dataset:
+
+```{r}
+iris_by_species %>%
+    summarize(
+        Petal.Length_mean=mean(Petal.Length),
+        Petal.Width_mean=mean(Petal.Width),
+        Petal.Length_var=var(Petal.Length),
+        Petal.Width_var=var(Petal.Width),
+        Petal_cor=cor(Petal.Length,Petal.Width)
+    )
+
+iris_by_species %>%
+    ggplot(aes(x=Petal.Length,y=Petal.Width,color=Species)) +
+    geom_point(shape=1) +
+    geom_smooth(method=lm)
+```
+
+By specifying `color=Species` we get three subplots that clearly visualize the three families of flowers. 
+
+# Exercise time:
+
+Do these exercises to `mtcars`-dataset intialized below (do note the use of `rownames_to_column` that will store row names from `data.frame` into a column in `tibble` [[rownames_to_column]](https://tibble.tidyverse.org/reference/rownames.html)):
+
+1. Use `mutate` to calculate litres per 100 km (e.g. lp100km) as mpg is a bad unit to use for fuel consumption (Ref: [[1]](http://science.sciencemag.org/content/320/5883/1593.full?ijkey=3pScQm7pQBzqs&keytype=ref&siteid=sci). Conversion factor is `lp100km=235.214583/mpg`.
+2. Calculate correlation of horsepower and quarter mile time (`qsec`). Plot scatter plot and a linear fit.
+3. Group data based on cylinder numbers. Calculate correlation between weight and l/100km for each group. Plot scatter plots with different colours for each group.
+
+```{r}
+data(mtcars)
+
+mtcars_tbl <- as_tibble(rownames_to_column(mtcars,var='model'))
+
+str(mtcars_tbl)
+```
+
