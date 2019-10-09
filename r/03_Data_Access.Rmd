@@ -141,6 +141,12 @@ write_feather(beer_recipes,'beer_recipes.feather')
 beer_recipes2 <- read_feather('beer_recipes.feather')
 ```
 
+```{r}
+# This is to fix a bug in our system
+Sys.setlocale('LC_ALL','C')
+beer_recipes2
+```
+
 # Database access
 
 There exists a package `DBI` that defines a common interface that can be used to access various different databases [[DBI]](https://dbi.r-dbi.org/).
