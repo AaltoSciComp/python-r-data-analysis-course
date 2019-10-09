@@ -67,7 +67,9 @@ Let's try installing package `ggplot2movies` to folder `rlibs`. After installati
 ```{r}
 if (!file.exists('rlibs')) {
     dir.create('rlibs')
-    install.packages('ggplot2movies', repos="http://cran.r-project.org", lib='rlibs')
+}
+if (!file.exists('rlibs/ggplotmovies')) {
+    install.packages('ggplotmovies', repos="http://cran.r-project.org", lib='rlibs')
 }
 library('ggplot2movies', lib.loc='rlibs')
 ```
