@@ -46,7 +46,6 @@ spec(beer_recipes)
 Many of the data columns seem to be characters instead of numbers. Let's use `col_types`-argument to specify a better definition.
 
 ```{r}
-
 beer_recipes <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv",
     col_types=cols(
       BeerID = col_integer(),
@@ -103,12 +102,25 @@ beer_recipes <- beer_recipes %>%
 str(beer_recipes)
 ```
 
-Let's say that we want to write the resulting `tibble` in a format that is easily readable in Excel.
-
-For this we'd want to use `write_excel_csv` (there are similar functions for normal csv, tsv etc.) [[write_excel_csv]](http://readr.tidyverse.org/reference/write_delim.html).  
+Now that we know that the data will be read in the correct format, we can load the full dataset:
 
 ```{r}
-write_excel_csv(beer_recipes, 'beer-recipes-excel-format.csv')
+beer_recipes <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/beers/recipeData.csv",na=c("","NA","N/A")) %>%
+    mutate(PrimingAmount=as.double(str_remove(PrimingAmount, ' oz')))
+
+str(beer_recipes)
+```
+
+# Storing data
+
+## CSV
+
+Let's say that we want to write the resulting `tibble` in a CSV so that we can share it with other researchers in a simple format.
+
+For this we'd want to use `write_csv` [[write_csv]](http://readr.tidyverse.org/reference/write_delim.html).  
+
+```{r}
+write_csv(beer_recipes, 'beer-recipes.csv')
 ```
 
 # Feather

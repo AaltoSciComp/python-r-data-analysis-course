@@ -1,0 +1,70 @@
+---
+title: An R Markdown document converted from "04_Simple_Models_ex_solutions.ipynb"
+output: html_document
+---
+
+# Exercises
+
+```{r}
+library(tidyverse)
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/broom')) {
+    install.packages('broom', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(broom, lib.loc='rlibs')
+library(modelr)
+```
+
+## 1.
+
+Try to improve on the linear model that we used by adding more predictors. What is the best fit you can obtain?
+
+```{r}
+library(tidyverse)
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/feather')) {
+    install.packages('feather', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(feather, lib.loc='rlibs')
+
+Sys.setlocale('LC_ALL','C')
+
+beer_recipes <- read_feather('beer_recipes.feather')
+beer_recipes <- beer_recipes %>%
+    filter(Style == 'American IPA' | Style == 'American Light Lager') %>%
+    select(Style:Color, -`Size(L)`) %>%
+    mutate_if(is.character, as.factor)
+
+str(beer_recipes)
+```
+
+```{r}
+beer_clusters <- beer_recipes %>%
+    select(-Style, -StyleID) %>%
+    kmeans(centers=2)
+```
+
+```{r}
+beers_clustered <- beer_clusters %>%
+    augment(beer_recipes)
+```
+
+```{r}
+beers_clustered <- beers_clustered %>%
+    mutate(style_code = fct_recode(as.factor(StyleID), "1"="7", "2"="9"))
+```
+
+```{r}
+beers_clustered <- beers_clustered %>%
+    mutate(clustering_failed=.cluster != style_code)
+```
+
+```{r}
+beers_clustered %>%
+    summarize(mean(clustering_failed))
+```
+
