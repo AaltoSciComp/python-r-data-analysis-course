@@ -1,0 +1,228 @@
+---
+title: An R Markdown document converted from "07_Bringing_It_Home_ex_solutions.ipynb"
+output: html_document
+---
+
+# Exercise
+
+It is often said that increase in life expectancy will reduce the amount of children people have as the probability of the child living into adulthood will be higher.
+
+There's two files in `/m/jhnas/jupyter/shareddata/python-r-data-analysis/world-bank-data-1960-to-2016`:
+    
+    - `fertility_rate.csv` contains fertility rate data.
+    - `life_expectancy.csv` constains life expectancy data.
+
+There's one file in `/m/jhnas/jupyter/shareddata/python-r-data-analysis/world-capitals-gps`:
+
+    - `concap.csv` contains GPS locations of world's capitals (and their country codes and continent codes).
+
+Do the following:
+
+1. Read these datasets in and make them into tidy format.
+
+2. Use join-functions from `tidyverse` to join the important variables of these datasets together [[join]](https://dplyr.tidyverse.org/reference/join.html).
+
+3. Calculate mean values and variations of fertility and life expectancy on a global and continental scale.
+
+4. Fit linear model of life expectancy vs. fertility to each country. See which countries match the best and which do the worst.
+
+5. Fit linear model of year vs life expectancy to each country. See which countries have done the most to improve on life expectancy since 1960.
+
+```{r}
+library(tidyverse)
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/broom')) {
+    install.packages('broom', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(broom, lib.loc='rlibs')
+library(modelr)
+```
+
+```{r}
+fertility <- read_csv('/m/jhnas/jupyter/shareddata/python-r-data-analysis/world-bank-data-1960-to-2016/fertility_rate.csv') %>%
+    gather('1960':'2016', key='year', value='fertility')%>%
+    select(-"Indicator Name",-"Indicator Code", -"Country Code") %>%
+    rename("country"="Country Name")
+head(fertility)
+```
+
+```{r}
+life_expectancy <- read_csv('/m/jhnas/jupyter/shareddata/python-r-data-analysis/world-bank-data-1960-to-2016/life_expectancy.csv') %>%
+    gather('1960':'2016', key='year', value='life_expt')%>%
+    select(-"Indicator Name",-"Indicator Code", -"Country Code") %>%
+    rename("country"="Country Name")
+head(life_expectancy)
+```
+
+```{r}
+continents <- read_csv('/m/jhnas/jupyter/shareddata/python-r-data-analysis/world-capitals-gps/concap.csv') %>%
+    rename("country"=CountryName) %>%
+    rename("continent"=ContinentName) %>%
+    select(country, continent)
+continents
+```
+
+```{r}
+all_data <- fertility %>%
+    left_join(life_expectancy) %>%
+    left_join(continents) %>%
+    drop_na() %>%
+    mutate(year=as.integer(year))
+
+head(all_data)
+```
+
+```{r}
+all_data %>%
+    summarize_at(vars(life_expt, fertility), list(mean=mean, var=var)) %>%
+    arrange(desc(life_expt_mean))
+```
+
+```{r}
+all_data %>%
+    group_by(continent) %>%
+    summarize_at(vars(life_expt, fertility), list(mean=mean, var=var)) %>%
+    arrange(desc(life_expt_mean))
+```
+
+```{r}
+fertility_model <- function(data) lm(fertility ~ life_expt, data=data)
+```
+
+```{r}
+countries <- all_data %>%
+    group_by(continent, country) %>%
+    nest()
+print(countries)
+```
+
+```{r}
+countries <- countries %>%
+    mutate(
+        fert_models=map(data, fertility_model)
+    )
+print(countries)
+```
+
+```{r}
+countries <- countries %>%
+    mutate(
+        fert_residuals=map2(data, fert_models, add_residuals)
+    )
+```
+
+```{r}
+residuals <- unnest(countries, fert_residuals)
+
+residuals %>%
+    ggplot(aes(x=year, y=resid)) +
+    geom_line(aes(group=country), alpha=1/3) +
+    geom_smooth(se = FALSE)
+```
+
+```{r}
+countries <- countries %>%
+    mutate(
+        fert_stats=map(fert_models, glance)
+    )
+```
+
+```{r}
+fert_stats <- unnest(countries, fert_stats, .drop=TRUE)
+
+fert_top5 <- fert_stats %>%
+    top_n(5, w=r.squared)
+
+fert_bot5 <- fert_stats %>%
+    top_n(-5, w=r.squared)
+
+fert_top5
+fert_bot5
+```
+
+```{r}
+countries <- countries %>%
+    mutate(
+        fert_pred=map2(data, fert_models, add_predictions)
+    )
+```
+
+```{r}
+fert_preds <- unnest(countries, fert_pred, .drop=TRUE)
+
+fert_top5 <- fert_top5 %>%
+    left_join(fert_preds) %>%
+    drop_na()
+
+fert_bot5 <- fert_bot5 %>%
+    left_join(fert_preds) %>%
+    drop_na()
+```
+
+```{r}
+fert_top5 %>%
+    ggplot(aes(x=life_expt, y=fertility, color=country)) +
+        geom_point() +
+        geom_line(aes(y=pred))
+
+fert_bot5 %>%
+    ggplot(aes(x=life_expt, y=fertility, color=country)) +
+        geom_point() +
+        geom_line(aes(y=pred))
+```
+
+```{r}
+lxpt_model <- function(data) lm(life_expt ~ year, data=data)
+```
+
+```{r}
+countries <- countries %>%
+    mutate(
+        lxpt_models=map(data, lxpt_model),
+        lxpt_params=map(lxpt_models, tidy),
+        lxpt_pred=map2(data, lxpt_models, add_predictions)
+    )
+print(countries)
+```
+
+```{r}
+lxpt_params <- unnest(countries, lxpt_params, .drop=TRUE)
+head(lxpt_params)
+
+lxpt_preds <- unnest(countries, lxpt_pred, .drop=TRUE)
+```
+
+```{r}
+lxpt_top5 <- lxpt_params %>%
+    filter(term=='year') %>%
+    top_n(5,w=estimate)
+
+lxpt_bot5 <- lxpt_params %>%
+    filter(term=='year') %>%
+    top_n(-5,w=estimate)
+```
+
+```{r}
+lxpt_top5 <- lxpt_top5 %>%
+    left_join(lxpt_preds) %>%
+    drop_na()
+
+lxpt_bot5 <- lxpt_bot5 %>%
+    left_join(lxpt_preds) %>%
+    drop_na()
+```
+
+```{r}
+lxpt_top5 %>%
+    ggplot(aes(x=year, y=life_expt, color=country)) +
+        geom_point() +
+        geom_line(aes(y=pred))
+
+lxpt_bot5 %>%
+    ggplot(aes(x=year, y=life_expt, color=country)) +
+        geom_point() +
+        geom_line(aes(y=pred))
+```
+

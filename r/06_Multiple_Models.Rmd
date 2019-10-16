@@ -1,0 +1,212 @@
+---
+title: An R Markdown document converted from "06_Multiple_Models.ipynb"
+output: html_document
+---
+
+# Running a model for split datasets
+
+## Running same model on subsets of a single dataset
+
+This section is based on [Chapter 25](https://r4ds.had.co.nz/many-models.html) of Garrett Grolemund's and Hadley Wickham's excellent book, [R for Data science](https://r4ds.had.co.nz/).
+
+We will be using packages `tidyverse`, `broom`, `modelr` and `gapminder`. `gapminder` is a sample dataset from [Gapminder Foundation](https://www.gapminder.org/).
+
+```{r}
+library(tidyverse)
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/broom')) {
+    install.packages('broom', repos="http://cran.r-project.org", lib='rlibs')
+}
+if (!file.exists('rlibs/gapminder')) {
+    install.packages('gapminder', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(broom, lib.loc='rlibs')
+library(gapminder, lib.loc='rlibs')
+library(modelr)
+```
+
+`gapminder` dataset contains yearly data of population, life expectancy and GDP on a country by country level.
+
+```{r}
+head(gapminder)
+```
+
+If we plot life expectancy vs time, we can see that for most countries this relationship seems almost linear.
+
+```{r}
+gapminder %>% 
+  ggplot(aes(year, lifeExp, group = country)) +
+    geom_line(alpha = 1/3)
+```
+
+Let's try this approach with one country e.g. New Zealand. Firstly, let's create a new tibble that has only New Zealand's data, Secondly, let's plot it.
+
+```{r}
+nz <- filter(gapminder, country == "New Zealand")
+nz %>% 
+  ggplot(aes(year, lifeExp)) + 
+  geom_line() + 
+  ggtitle("New Zealand")
+```
+
+Let's fit a linear model here.
+
+```{r}
+nz_model <- lm(lifeExp ~ year, data = nz)
+nz %>% 
+  add_predictions(nz_model) %>%
+  ggplot(aes(year, pred)) + 
+  geom_line() + 
+  ggtitle("Linear trend")
+```
+
+To see how well this matches our original data, let's add residuals (the difference between fit and data) to the dataset with `add_residuals` [[add_residuals]](https://modelr.tidyverse.org/reference/add_residuals.html).
+
+Let's plot this.
+
+```{r}
+nz %>% 
+  add_residuals(nz_model) %>% 
+  ggplot(aes(year, resid)) + 
+  geom_hline(yintercept = 0, colour = "white", size = 3) + 
+  geom_line() + 
+  ggtitle("Remaining pattern")
+```
+
+Not a perfect fit, but not bad either.
+
+When doing the same for all countries, we'll first want to group the data per country and continent.
+
+After that we can use the `nest`-function, to take all data that belongs to said groups into a sub-tibble ([[nest]](http://tidyr.tidyverse.org/reference/nest.html)).
+
+```{r}
+by_country <- gapminder %>%
+    group_by(country, continent) %>%
+    nest()
+
+print(by_country)
+```
+
+Now you see that the `data`-variable is of type `list` and for each country we have the data that belongs to said country in its own tibble.
+
+Thus we have split the dataset based on the grouping.
+
+Now we can use `function` to create a generic linear model that we can use for each country.
+
+```{r}
+country_model <- function(data) lm(lifeExp ~ year, data = data)
+```
+
+Notice that the data that goes into the model is a free parameter that is not yet defined. When running this function, `lm` assumes that the data contains columns `lifeExp` and `year`.
+
+To run this model on each dataset in `data`-column, we can use the `map`-function.
+
+`map` takes a `list` and a `function` and it will apply said `function` for each entry in that `list`. As its output it will return a new `list` with a same number of elements as the original `list`.
+
+By using the `mutate`-function, we can put the resulting `list` into a new column in our tibble.
+
+```{r}
+by_country <- by_country %>%
+    mutate(
+        model=map(data,country_model)
+    )
+print(by_country)
+```
+
+Let's say we want to see how well our models we fitted. For this we'll need to generate the residuals with `add_residuals` [[add_residuals]](https://modelr.tidyverse.org/reference/add_residuals.html).
+
+Add residuals takes two arguments: `data` and a `model`. Thus we'll need to iterate over `data1` and `model1`, `data2` and `model2`, ...
+
+For this we can use the `map2`-function [[map2]](https://purrr.tidyverse.org/reference/map2.html).
+
+As its arguments it takes two lists `x` and `y` and a function `f`. As its output it will return `f(x_i,y_i)` for each element of the lists.
+
+```{r}
+by_country <- by_country %>%
+    mutate(
+        residuals=map2(data, model, add_residuals)
+    )
+
+print(by_country)
+```
+
+Now we have the residuals in column `residuals`. To obtain the actual values from the `residuals`-column, we'll have to use `unnest` to reverse the nesting procedure [[unnest]](https://tidyr.tidyverse.org/reference/unnest.html).
+
+```{r}
+residuals <- unnest(by_country, residuals)
+head(residuals)
+```
+
+Let's plot the residuals.
+
+```{r}
+residuals %>% 
+  ggplot(aes(year, resid)) +
+    geom_line(aes(group = country), alpha = 1 / 3) + 
+    geom_smooth(se = FALSE)
+```
+
+Looks ok for the most part. Some countries have quite big residuals.
+
+Let's focus on finding those.
+
+In the previous section we used `tidy` from `broom`-package to obtain parameters for models.
+
+This time, let's use `glance` to obtain statistics on how good the fit was [[glance]](https://broom.tidyverse.org/reference/glance.lm.html).
+
+For example, when used on `nz_model`, we obtain these nice statistics.
+
+```{r}
+glance(nz_model)
+```
+
+Let's use `map` to do the same on a model-by-model basis.
+
+```{r}
+by_country <- by_country %>%
+    mutate(
+        model_perf=map(model, glance)
+    )
+
+print(by_country)
+```
+
+Now let's `unnest` the data.
+
+```{r}
+model_perf <- unnest(by_country, model_perf)
+print(model_perf)
+```
+
+This left the columns with `list`-datatype in the `model_perf`-tibble. Let's forcibly drop them with `.drop=TRUE` during unnesting.
+
+```{r}
+model_perf <- unnest(by_country, model_perf, .drop=TRUE)
+head(model_perf)
+```
+
+Now we have the fit statistics in a nice tidy format. Let's find the countries that bucked the trends by looking at the worst `r.squared` scores. 
+
+```{r}
+bad_fit <- filter(model_perf, r.squared < 0.25)
+
+gapminder %>% 
+  semi_join(bad_fit, by = "country") %>% 
+  ggplot(aes(year, lifeExp, colour = country)) +
+    geom_line()
+```
+
+## Exercise
+
+Dataset `/m/jhnas/jupyter/shareddata/python-r-data-analysis/honey-production/honeyproduction.csv` contains data on honey production in the US.
+
+1. Calculate the total amount of honey produced in the US for each year. Plot it.
+2. For each state, fit a linear model totalprod ~ year. Plot original data and fitted lines.
+3. Plot the slope coefficient of the linear fit.
+
+```{r}
+honey <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/honey-production/honeyproduction.csv")
+```
+

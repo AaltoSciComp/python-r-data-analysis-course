@@ -1,0 +1,121 @@
+---
+title: An R Markdown document converted from "06_Multiple_Models_ex_solutions.ipynb"
+output: html_document
+---
+
+## Exercise
+
+Dataset `/m/jhnas/jupyter/shareddata/python-r-data-analysis/honey-production/honeyproduction.csv` contains data on honey production in the US.
+
+1. Calculate the total amount of honey produced in the US for each year. Plot it.
+2. For each state, fit a linear model totalprod ~ year. Plot original data and fitted lines.
+3. Plot the slope coefficient of the linear fit.
+
+Loading required packages.
+
+```{r}
+library(tidyverse)
+if (!file.exists('rlibs')) {
+    dir.create('rlibs')
+}
+if (!file.exists('rlibs/broom')) {
+    install.packages('broom', repos="http://cran.r-project.org", lib='rlibs')
+}
+library(broom, lib.loc='rlibs')
+library(modelr)
+```
+
+Loading data.
+
+```{r}
+honey <- read_csv("/m/jhnas/jupyter/shareddata/python-r-data-analysis/honey-production/honeyproduction.csv")
+```
+
+Calculate yearly production using `summarize`.
+
+```{r}
+yearly_prod <- honey %>%
+    select(year,totalprod) %>%
+    group_by(year) %>%
+    summarize(totalprod=sum(totalprod))
+
+yearly_prod %>%
+    ggplot(aes(x=year, y=totalprod)) +
+        geom_col()
+```
+
+Create a nested array with the relevant variables.
+
+```{r}
+honey_nested <- honey %>%
+    select(state, totalprod, year) %>%
+    group_by(state) %>%
+    nest()
+```
+
+Create a model function.
+
+```{r}
+honey_model <- function(data) lm(totalprod ~ year, data=data)
+```
+
+Fit the models using `map` and `mutate`.
+
+```{r}
+honey_nested <- honey_nested %>%
+    mutate(
+        models=map(data, honey_model)
+    )
+```
+
+Add predictions using `map2` and `mutate`.
+
+```{r}
+honey_nested <- honey_nested %>%
+    mutate(
+        pred=map2(data, models, add_predictions)
+    )
+```
+
+Unnest predictions.
+
+```{r}
+honey_predictions <- unnest(honey_nested, pred)
+head(honey_predictions)
+```
+
+Plot predictions.
+
+```{r}
+honey_predictions %>%
+    ggplot(aes(x=year, y=totalprod, color=state)) +
+        geom_point() +
+        geom_line(aes(y=pred))
+```
+
+Use `map` and `tidy` to obtain model parameters.
+
+```{r}
+honey_nested <- honey_nested %>%
+    mutate(
+        model_params=map(models, tidy)
+    )
+```
+
+Unnest the model parameters.
+
+```{r}
+honey_model_params <- honey_nested %>%
+    unnest(model_params)
+```
+
+Plot the model parameters.
+
+```{r}
+honey_model_params %>%
+    filter(term=='year') %>%
+    mutate(state=reorder(state,estimate)) %>%
+    ggplot(aes(x=state,y=estimate)) +
+        geom_col()
+```
+
