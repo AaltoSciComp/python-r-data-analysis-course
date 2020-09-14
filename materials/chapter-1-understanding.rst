@@ -89,7 +89,7 @@ Thinking about a data science problem in a pipeline form is important
 because it highlights two important features:
 
 1. Modularity
-2. Interfaces
+2. Interfacing
 
 Modularity
 ==========
@@ -144,3 +144,41 @@ to use simple functions with human-readable names. See Hadley Wickham's
 (tidyverse creator)
 `tidy tools manifesto <https://tidyverse.tidyverse.org/articles/manifesto.html>`_
 for more information.
+
+Interfacing
+===========
+
+Modularity as a design principle is all fine and good, but for it to be really
+effective, there needs to be good communication between the modules. This means
+that there should be well defined interfaces between modules or, in other words,
+for each module the output of the module should be in a format that can be
+used as an input for the next module.
+
+In the previous example of a pipeline with two models ``M1(x)`` and ``M2(x)``
+we implicitly assumed that the model evaluation function ``E(x)`` could
+read in the output of the models.
+
+.. image:: images/pipeline-modularity-3.svg
+
+As an example, in R the
+`residuals-function <https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/residuals>`_
+is defined for all model fitting functions and it will provide model
+residuals. Thus if our evaluation function were to use
+`residual sum of squares <https://en.wikipedia.org/wiki/Residual_sum_of_squares>`_
+as a criterion of model evaluation, it would work with **all models that have a
+residuals-function**. This is an example of a good interface.
+
+
+Interfacing in the wild
+=======================
+
+Both pandas and R's tidyverse try to utilize a consistent strategy with data
+structures. In pandas functions usually taka a ``Series``- or
+``DataFrame``-objects and as their output they usually provide a similar
+object. In R's tidyverse tries to do the same with ``tibble``-structures. By
+having a consistent data type throughout the data analysis pipeline coding
+becomes much easier: the API's just work.
+
+This is also extremely important in the industry. Analyzing big data requires
+good interfaces. For a good example, see
+`Steve Yegge's rant on Google's platforms and on Jeff Bezos' 2002 interface mandate <https://gist.github.com/chitchcock/1281611>`_.
