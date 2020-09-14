@@ -136,4 +136,11 @@ Pandas as a library has been designed with modularity in mind right from
 the start. Each function in it has a specific task they need to accomplish
 and the output is usually of the same type as the input. Functions are short
 and the API tries to be as clean as possible. See slides 9, 13, 17 and 18 from
-`Wes McKinney's presentation in NYCPython conference in 2012 <https://wesmckinney.com/blog/nycpython-1102012-a-look-inside-pandas-design-and-development/>`_ for more information.
+Wes McKinney's (pandas creator)
+`presentation in NYCPython conference in 2012 <https://wesmckinney.com/blog/nycpython-1102012-a-look-inside-pandas-design-and-development/>`_ for more information.
+
+Same can be said about R's tidyverse ecosystem. The ecosystem is designed
+to use simple functions with human-readable names. See Hadley Wickham's
+(tidyverse creator)
+`tidy tools manifesto <https://tidyverse.tidyverse.org/articles/manifesto.html>`_
+for more information.
