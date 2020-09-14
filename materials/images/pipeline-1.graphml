@@ -13,8 +13,9 @@
   <key attr.name="description" attr.type="string" for="edge" id="d9"/>
   <key for="edge" id="d10" yfiles.type="edgegraphics"/>
   <graph edgedefault="directed" id="G">
-    <data key="d0" xml:space="preserve"/>
+    <data key="d0"/>
     <node id="n0">
+      <data key="d5"/>
       <data key="d6">
         <y:ShapeNode>
           <y:Geometry height="42.0" width="42.0" x="369.0" y="228.0"/>
@@ -26,10 +27,11 @@
       </data>
     </node>
     <node id="n1">
+      <data key="d5"/>
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="42.0" width="42.0" x="471.0" y="228.0"/>
-          <y:Fill color="#99CCFF" transparent="false"/>
+          <y:Geometry height="42.0" width="42.0" x="505.0" y="228.0"/>
+          <y:Fill color="#CCFFCC" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="11.6171875" x="15.19140625" xml:space="preserve" y="12.015625">d<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
           <y:Shape type="rectangle"/>
@@ -37,12 +39,13 @@
       </data>
     </node>
     <node id="n2">
+      <data key="d5"/>
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="42.0" width="42.0" x="420.0" y="228.0"/>
-          <y:Fill color="#99CCFF" transparent="false"/>
+          <y:Geometry height="42.0" width="82.0" x="417.0" y="228.0"/>
+          <y:Fill color="#CCFFCC" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="24.00390625" x="8.998046875" xml:space="preserve" y="12.015625">I(x)<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="52.62109375" x="14.689453125" xml:space="preserve" y="12.015625">I(d_raw)<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
           <y:Shape type="fatarrow"/>
         </y:ShapeNode>
       </data>
