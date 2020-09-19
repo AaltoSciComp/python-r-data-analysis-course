@@ -1,0 +1,20 @@
+name: dataanalysis
+channels:
+  - defaults
+dependencies:
+  - colorama
+  - gitdb
+  - gitpython
+  - jupyter
+  - numpy
+  - pandas
+  - pip
+  - pyyaml
+  - scipy
+  - six
+  - smmap
+  - sphinx
+  - sphinx_rtd_theme
+  - sqlalchemy
+  - pip:
+    - https://github.com/coderefinery/sphinx-lesson/archive/master.zip
