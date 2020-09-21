@@ -1,16 +1,28 @@
 name: dataanalysis
 channels:
   - defaults
+  - r
 dependencies:
   - colorama
   - gitdb
   - gitpython
   - jupyter
+  - jupyterlab
+  - matplotlib
   - numpy
   - pandas
   - pip
   - pyyaml
+  - r-cairo
+  - r-caret
+  - r-e1071
+  - r-feather
+  - r-irkernel
+  - r-recommended
+  - r-tidyverse
   - scipy
+  - scikit-learn
+  - seaborn
   - six
   - smmap
   - sphinx
